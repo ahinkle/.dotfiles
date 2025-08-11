@@ -76,6 +76,11 @@ source $ZSH/oh-my-zsh.sh
 
 # User configuration
 
+# Source bash aliases
+if [ -f ~/.dotfiles/.bash-aliases ]; then
+    source ~/.dotfiles/.bash-aliases
+fi
+
 # export MANPATH="/usr/local/man:$MANPATH"
 
 # You may need to manually set your language environment
@@ -103,154 +108,8 @@ source $ZSH/oh-my-zsh.sh
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
-# Editor
 
-# PHP
-alias c="composer"
-alias cu="composer update"
-alias ci="composer install"
-alias pst="./vendor/bin/phpstan analyse --memory-limit=2G"
-alias pint='./vendor/bin/pint'
-alias pest='./vendor/bin/pest'
-# Laravel
-alias pa="php artisan"
-alias pu="./vendor/bin/phpunit -d memory_limit=2048M"
-alias pup="php artisan test -p"
-alias mfs="php artisan migrate:fresh --seed"
-alias viewlog='tail -f -n 450 storage/logs/laravel*.log \
-                | grep -i -E \
-                    "^\[\d{4}\-\d{2}\-\d{2} \d{2}:\d{2}:\d{2}\]|Next [\w\W]+?\:" \
-                    --color'
-# Node / NPM
-alias ni="npm install"
-alias nu="npm update"
 
-# Git
-alias ff='git pull --ff-only'
-alias gpo="git pull origin"
-alias nah='git reset --hard;git clean -df'
-alias wip='git add . && git commit -m "wip"'
-# Switches from the current branch to the main branch, resets the main branch, and deletes the previous branch.
-function switch_to_origin_and_reset() {
-    # Get the name of the current branch
-    local current_branch="$(git rev-parse --abbrev-ref HEAD)"
-
-    # Switch to 'main' or 'master' brancht
-    if git rev-parse --verify main &>/dev/null; then
-        git checkout main
-    elif git rev-parse --verify master &>/dev/null; then
-		echo "Main branch not found, switching to master. Recommend creating a main branch."
-        git checkout master
-    elif git rev-parse --verify staging &>/dev/null; then
-        git checkout staging
-    else
-        echo "Neither 'main' nor 'master' nor 'staging' branch found."
-        return 1
-    fi
-
-    # Delete the previous feature branch, if it's not the current branch
-    if [[ $current_branch != "main" && $current_branch != "master" && $current_branch != "staging" ]]; then
-        git branch -d "$current_branch"
-    fi
-
-    # Pull the latest changes with --ff-only flag
-    git pull --ff-only
-}
-alias origin='switch_to_origin_and_reset'
-alias repo='gh repo view --web'
-cpr() {
-    branch=$(git rev-parse --abbrev-ref HEAD)
-    remote=$(git remote)
-    
-    # Check if we have uncommitted changes
-    if ! git diff-index --quiet HEAD --; then
-        read -p "You have uncommitted changes. Continue anyway? (y/n): " confirm
-        if [[ $confirm != "y" ]]; then
-            echo "Aborted PR creation."
-            return 1
-        fi
-    fi
-    
-    # Check for unpushed commits
-    if git log ${remote}/$(git symbolic-ref --short HEAD)..HEAD | grep -q .; then
-        echo "Pushing unpushed commits..."
-        git push -u $remote $branch
-    fi
-    
-    # Open PR creation page
-    gh pr create --web
-}
-
-checks() {
-    local pr_number="$1"
-    local repo_flag=""
-    
-    # If no PR number provided, try to get current PR
-    if [[ -z "$pr_number" ]]; then
-        pr_number=$(gh pr view --json number --jq '.number' 2>/dev/null)
-        if [[ -z "$pr_number" ]]; then
-            echo "No PR number provided and not in a PR branch"
-            return 1
-        fi
-    fi
-    
-    # Add repo flag if we're not in the repo directory
-    if [[ -n "$2" ]]; then
-        repo_flag="--repo $2"
-    fi
-    
-    # Get check results
-    local output=$(gh pr checks $pr_number $repo_flag 2>/dev/null)
-    local exit_code=$?
-    
-    if [[ $exit_code -ne 0 ]]; then
-        echo "Failed to fetch PR checks"
-        return 1
-    fi
-    
-    # Count different check statuses
-    local total=$(echo "$output" | wc -l)
-    local passed=$(echo "$output" | grep -c "✓" || echo "0")
-    local failed=$(echo "$output" | grep -c "✗" || echo "0")
-    local pending=$(echo "$output" | grep -cE "(pending|⏳|○)" || echo "0")
-    
-    # Determine status and provide feedback
-    if [[ $failed -gt 0 ]]; then
-        echo "❌ $failed/$total checks failed"
-        echo "$output"
-    elif [[ $pending -gt 0 ]]; then
-        echo "⏳ $passed/$total checks complete (${pending} running)"
-        echo "$output"
-    else
-        echo "✅ All GitHub Actions Passing ($total/$total)"
-    fi
-}
-
-# SSH
-alias copysshkey='command cat ~/.ssh/id_rsa.pub | pbcopy'
-alias sshgn="ssh forge@173.249.71.94"
-
-# MySQL
-function mkdatabase() {
-    if [ -z "$1" ]; then
-        echo "Please provide a database name"
-        return 1
-    fi
-
-    mysql -h 127.0.0.1 -u root -P 3306 --socket="/Users/ahinkle/Library/Application Support/Herd/config/services/377A633D-7EFC-4BDC-A5A6-F4C588DFAF95/" -e "DROP DATABASE IF EXISTS $1;"
-    mysql -h 127.0.0.1 -u root -P 3306 --socket="/Users/ahinkle/Library/Application Support/Herd/config/services/377A633D-7EFC-4BDC-A5A6-F4C588DFAF95/" -e "CREATE DATABASE $1;"
-    
-    echo "Database '$1' created successfully"
-}
-
-alias mkdb='mkdatabase'
-
-# AI
-alias cl="claude --dangerously-skip-permissions"
-
-# Neovim
-alias t='tmux'
-alias ta="tmux attach -t"
 
 
 # Python 3 

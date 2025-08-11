@@ -1,0 +1,82 @@
+# ----------- AI ------------ #
+alias cl="claude --dangerously-skip-permissions"
+
+# ----------- Neovim / Tmux ------------ #
+alias t='tmux'
+alias ta="tmux attach -t"
+
+# ----------- PHP ------------ #
+alias c="composer"
+alias cu="composer update"
+alias ci="composer install"
+alias phpstan="./vendor/bin/phpstan analyse --memory-limit=2G"
+alias pint='./vendor/bin/pint'
+alias pest='./vendor/bin/pest --parallel'
+
+# ----------- Laravel ------------ #
+alias pa="php artisan"
+alias pu="./vendor/bin/phpunit -d memory_limit=2048M"
+alias pup="php artisan test -p"
+alias mfs="php artisan migrate:fresh --seed"
+alias viewlog='tail -f -n 450 storage/logs/laravel*.log \
+                | grep -i -E \
+                    "^\\[\\d{4}\\-\\d{2}\\-\\d{2} \\d{2}:\\d{2}:\\d{2}\\]|Next [\\w\\W]+?\\:" \
+                    --color'
+
+# ----------- Node/NPM ------------ #
+alias ni="npm install"
+alias nu="npm update"
+alias nd="npm run dev"
+
+# ----------- Git ------------ #
+alias ff='git pull --ff-only'
+alias gpo="git pull origin"
+alias nah='git reset --hard;git clean -df'
+alias wip='git add . && git commit -m "wip"'
+alias repo='gh repo view --web'
+# Switches from the current branch to the main branch, resets the main branch, and deletes the previous branch.
+function switch_to_origin_and_reset() {
+    # Get the name of the current branch
+    local current_branch="$(git rev-parse --abbrev-ref HEAD)"
+
+    # Switch to 'main' or 'master' brancht
+    if git rev-parse --verify main &>/dev/null; then
+        git checkout main
+    elif git rev-parse --verify master &>/dev/null; then
+	echo "Main branch not found, switching to master. Recommend creating a main branch."
+        git checkout master
+    elif git rev-parse --verify staging &>/dev/null; then
+        git checkout staging
+    else
+        echo "Neither 'main' nor 'master' nor 'staging' branch found."
+        return 1
+    fi
+
+    # Delete the previous feature branch, if it's not the current branch
+    if [[ $current_branch != "main" && $current_branch != "master" && $current_branch != "staging" ]]; then
+        git branch -d "$current_branch"
+    fi
+
+    # Pull the latest changes with --ff-only flag
+    git pull --ff-only
+}
+alias origin='switch_to_origin_and_reset'
+
+# ----------- SSH ------------ #
+alias copysshkey='command cat ~/.ssh/id_rsa.pub | pbcopy'
+
+# ----------- Databases ------------ #
+function mkdatabase() {
+    if [ -z "$1" ]; then
+        echo "Please provide a database name"
+        return 1
+    fi
+
+    mysql -h 127.0.0.1 -u root -P 3306 --socket="/Users/ahinkle/Library/Application Support/Herd/config/services/377A633D-7EFC-4BDC-A5A6-F4C588DFAF95/" -e "DROP DATABASE IF EXISTS $1;"
+    mysql -h 127.0.0.1 -u root -P 3306 --socket="/Users/ahinkle/Library/Application Support/Herd/config/services/377A633D-7EFC-4BDC-A5A6-F4C588DFAF95/" -e "CREATE DATABASE $1;"
+    
+    echo "Database '$1' created successfully"
+}
+
+alias mkdb='mkdatabase'
+z
