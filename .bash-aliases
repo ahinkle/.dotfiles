@@ -79,4 +79,3 @@ function mkdatabase() {
 }
 
 alias mkdb='mkdatabase'
-z
