@@ -27,6 +27,7 @@ alias viewlog='tail -f -n 450 storage/logs/laravel*.log \
 alias ni="npm install"
 alias nu="npm update"
 alias nd="npm run dev"
+alias nb="npm run build"
 
 # ----------- Git ------------ #
 alias ff='git pull --ff-only'
