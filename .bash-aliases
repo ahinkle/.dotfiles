@@ -35,6 +35,7 @@ alias gpo="git pull origin"
 alias nah='git reset --hard;git clean -df'
 alias wip='git add . && git commit -m "wip"'
 alias repo='gh repo view --web'
+alias cpr='gh pr create --web'
 # Switches from the current branch to the main branch, resets the main branch, and deletes the previous branch.
 function switch_to_origin_and_reset() {
     # Get the name of the current branch
