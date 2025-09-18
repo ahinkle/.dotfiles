@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "includeCoAuthoredBy": false,
+  "feedbackSurveyState": {
+    "lastShownTime": 1754109031939
+  },
+  "disableBypassPermissionsMode": true,
+  "permissions": {
+    "allow": [
+      "Edit",
+      "Read", 
+      "Bash(composer:*)",
+      "Bash(php:*)",
+      "Bash(phpstan:*)",
+      "Bash(phpunit:*)",
+      "Bash(npm:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}
