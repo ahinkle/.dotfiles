@@ -1,5 +1,5 @@
 # ----------- AI ------------ #
-alias cl="claude --dangerously-skip-permissions"
+alias cl="claude"
 
 # ----------- Neovim / Tmux ------------ #
 alias t='tmux'
