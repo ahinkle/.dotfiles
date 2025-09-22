@@ -14,7 +14,8 @@
       "Bash(phpstan:*)",
       "Bash(phpunit:*)",
       "Bash(npm:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(find:*)"
     ],
     "deny": [
       "Bash(git commit:*)",
