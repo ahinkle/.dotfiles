@@ -11,7 +11,9 @@
       "Bash(phpunit:*)",
       "Bash(npm:*)",
       "Bash(git add:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr diff:*)"
     ],
     "deny": [
       "Bash(git commit:*)",
