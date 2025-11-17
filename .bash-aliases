@@ -29,6 +29,7 @@ alias ni="npm install"
 alias nu="npm update"
 alias nd="npm run dev"
 alias nb="npm run build"
+alias np="nb"
 
 # ----------- Git ------------ #
 alias ff='git pull --ff-only'
