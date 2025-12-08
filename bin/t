@@ -130,7 +130,7 @@ create_session() {
 
     # Window 1: nvim (default window)
     tmux new-session -d -s "$session_name" -c "$project_path" -n "nvim"
-    tmux send-keys -t "$session_name:1" "nvim ." C-m
+    tmux send-keys -t "$session_name:1" "nvim" C-m
 
     # Track current window number
     local win_num=2
