@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+#
+# Tmux Project Sessionizer
+# Usage: t [project-name]
+#   - t                : Show fzf picker for all projects
+#   - t andyhinkle.com : Jump to project matching "andyhinkle.com" in ~/Sites/{organization}/andyhinkle.com
+#
+
+set -e
+
+# Configuration
+SITES_DIR="$HOME/Sites"
+
+# ============================================
+# Dependency Checks
+# ============================================
+
+check_dependencies() {
+    if ! command -v fzf &> /dev/null; then
+        echo "Error: fzf is required but not installed."
+        echo "Install with: brew install fzf"
+        exit 1
+    fi
+
+    if ! command -v tmux &> /dev/null; then
+        echo "Error: tmux is required but not installed."
+        echo "Install with: brew install tmux"
+        exit 1
+    fi
+}
+
+# ============================================
+# Project Discovery
+# ============================================
+
+find_projects() {
+    # Find all directories at depth 2 (~/Sites/*/*)
+    find "$SITES_DIR" -mindepth 2 -maxdepth 2 -type d 2>/dev/null | sort
+}
+
+# ============================================
+# Project Selection
+# ============================================
+
+select_project() {
+    local query="$1"
+    local projects
+    projects=$(find_projects)
+
+    if [ -z "$projects" ]; then
+        echo "No projects found in $SITES_DIR"
+        exit 1
+    fi
+
+    if [ -n "$query" ]; then
+        # If a query is provided, try to find exact or fuzzy match
+        local match
+
+        # First try exact basename match (case insensitive)
+        match=$(echo "$projects" | while read -r dir; do
+            if [[ "$(basename "$dir" | tr '[:upper:]' '[:lower:]')" == "$(echo "$query" | tr '[:upper:]' '[:lower:]')" ]]; then
+                echo "$dir"
+            fi
+        done | head -1)
+
+        if [ -n "$match" ]; then
+            echo "$match"
+            return
+        fi
+
+        # Try partial match on basename
+        match=$(echo "$projects" | while read -r dir; do
+            basename "$dir"
+        done | grep -i "$query" | head -1)
+
+        if [ -n "$match" ]; then
+            # Find the full path for this match
+            echo "$projects" | grep -i "/$match$" | head -1
+            return
+        fi
+
+        # No direct match found, show fzf with query pre-filled
+        echo "$projects" | fzf --query="$query" \
+            --height=40% \
+            --layout=reverse \
+            --border \
+            --prompt="Project: " \
+            --preview='ls -la {}'
+    else
+        # No query, show full fzf picker
+        echo "$projects" | fzf \
+            --height=40% \
+            --layout=reverse \
+            --border \
+            --prompt="Project: " \
+            --preview='ls -la {}'
+    fi
+}
+
+# ============================================
+# Session Name Sanitization
+# ============================================
+
+sanitize_session_name() {
+    local name="$1"
+    # Replace dots, spaces, and colons with dashes
+    echo "$name" | tr '.' '-' | tr ' ' '-' | tr ':' '-'
+}
+
+# ============================================
+# Session Creation
+# ============================================
+
+create_session() {
+    local project_path="$1"
+    local project_name
+    local session_name
+
+    project_name=$(basename "$project_path")
+    session_name=$(sanitize_session_name "$project_name")
+
+    # Check if session already exists
+    if tmux has-session -t "$session_name" 2>/dev/null; then
+        echo "Session '$session_name' exists. Attaching..."
+        attach_to_session "$session_name"
+        return
+    fi
+
+    echo "Creating session '$session_name' for $project_path..."
+
+    # Window 1: nvim (default window)
+    tmux new-session -d -s "$session_name" -c "$project_path" -n "nvim"
+    tmux send-keys -t "$session_name:1" "nvim ." C-m
+
+    # Track current window number
+    local win_num=2
+
+    # Window 2: npm (only if package.json exists)
+    if [ -f "$project_path/package.json" ]; then
+        tmux new-window -t "$session_name" -n "npm" -c "$project_path"
+        tmux send-keys -t "$session_name:$win_num" "npm run dev" C-m
+        ((win_num++))
+    fi
+
+    # Window: claude
+    tmux new-window -t "$session_name" -n "claude" -c "$project_path"
+    tmux send-keys -t "$session_name:$win_num" "claude" C-m
+    ((win_num++))
+
+    # Window: term (blank)
+    tmux new-window -t "$session_name" -n "term" -c "$project_path"
+    ((win_num++))
+
+    # Window: git (lazygit)
+    tmux new-window -t "$session_name" -n "git" -c "$project_path"
+    tmux send-keys -t "$session_name:$win_num" "lazygit" C-m
+
+    # Select window 1 (nvim) as the starting window
+    tmux select-window -t "$session_name:1"
+
+    # Attach to the session
+    attach_to_session "$session_name"
+}
+
+# ============================================
+# Session Attachment
+# ============================================
+
+attach_to_session() {
+    local session_name="$1"
+
+    if [ -n "$TMUX" ]; then
+        # Already inside tmux, switch to session
+        tmux switch-client -t "$session_name"
+    else
+        # Outside tmux, attach to session
+        tmux attach-session -t "$session_name"
+    fi
+}
+
+# ============================================
+# Main
+# ============================================
+
+main() {
+    check_dependencies
+
+    local query="$1"
+    local selected_project
+
+    selected_project=$(select_project "$query")
+
+    if [ -z "$selected_project" ]; then
+        echo "No project selected."
+        exit 0
+    fi
+
+    create_session "$selected_project"
+}
+
+main "$@"

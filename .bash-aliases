@@ -2,8 +2,25 @@
 alias cl="claude"
 
 # ----------- Neovim / Tmux ------------ #
-alias t='tmux'
+# t command is now ~/.dotfiles/bin/t (sessionizer)
 alias ta="tmux attach -t"
+
+# Kill tmux sessions: tkill (all) or tkill project.name
+tkill() {
+    if [ -z "$1" ]; then
+        echo -n "This will kill ALL tmux sessions. Are you sure? [y/N] "
+        read -r response
+        if [[ "$response" =~ ^[Yy]$ ]]; then
+            tmux kill-server && echo "Killed all tmux sessions"
+        else
+            echo "Cancelled"
+        fi
+    else
+        local session_name
+        session_name=$(echo "$1" | tr '.' '-' | tr ' ' '-' | tr ':' '-')
+        tmux kill-session -t "$session_name" && echo "Killed session '$session_name'"
+    fi
+}
 
 # ----------- PHP ------------ #
 alias c="composer"
