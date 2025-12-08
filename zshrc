@@ -143,3 +143,7 @@ export PATH=$PATH:$ANDROID_HOME/tools/bin
 
 # Herd injected PHP 8.2 configuration.
 export HERD_PHP_82_INI_SCAN_DIR="/Users/ahinkle/Library/Application Support/Herd/config/php/82/"
+
+
+# Herd injected PHP 8.5 configuration.
+export HERD_PHP_85_INI_SCAN_DIR="/Users/ahinkle/Library/Application Support/Herd/config/php/85/"
