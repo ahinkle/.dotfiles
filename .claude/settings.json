@@ -11,6 +11,7 @@
       "Bash(phpunit:*)",
       "Bash(npm:*)",
       "Bash(git add:*)",
+      "Bash(git symbolic-ref:*)",
       "Bash(find:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr diff:*)",
