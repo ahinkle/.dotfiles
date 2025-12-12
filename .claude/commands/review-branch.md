@@ -58,6 +58,9 @@ You are reviewing code with these principles in mind:
 ### What NOT to Flag
 - Superfluous tests already written; these are okay to have.
 
+### Do NOT Run
+- **Tests**: Only run tests if you make changes that need verification. Otherwise, assume tests are passing.
+
 
 ### Fix Silently (Flag but Don't Comment in PR)
 These are valid issues to identify, but ones you'll go ahead and fix rather than requesting changes:
