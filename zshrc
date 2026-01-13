@@ -74,8 +74,6 @@ plugins=(git)
 
 source $ZSH/oh-my-zsh.sh
 
-# User configuration
-
 # Source bash aliases
 if [ -f ~/.dotfiles/.bash-aliases ]; then
     source ~/.dotfiles/.bash-aliases

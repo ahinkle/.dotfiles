@@ -3,24 +3,37 @@
   "includeCoAuthoredBy": false,
   "permissions": {
     "allow": [
-      "Edit",
-      "Read",
+      "Bash(./vendor/bin/phpstan:*)",
       "Bash(composer:*)",
+      "Bash(echo:*)",
+      "Bash(find:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh run view:*)",
+      "Bash(git add:*)",
+      "Bash(git symbolic-ref:*)",
+      "Bash(grep:*)",
+      "Bash(jq:*)",
+      "Bash(npm:*)",
       "Bash(php:*)",
       "Bash(phpstan:*)",
       "Bash(phpunit:*)",
-      "Bash(npm:*)",
-      "Bash(git add:*)",
-      "Bash(git symbolic-ref:*)",
-      "Bash(find:*)",
-      "Bash(gh pr view:*)",
-      "Bash(gh pr diff:*)",
+      "Bash(sed:*)",
+      "Edit",
+      "Read",
       "mcp__laravel-boost"
     ],
     "deny": [
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(rm -rf:*)"
     ]
+  },
+  "enabledPlugins": {
+    "swift-lsp@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "taylor-says@rydeventures-claude-plugins": true
   },
   "alwaysThinkingEnabled": false,
   "feedbackSurveyState": {
