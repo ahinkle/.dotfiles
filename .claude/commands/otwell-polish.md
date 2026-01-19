@@ -285,6 +285,195 @@ Logical grouping and ordering:
 - Methods: public API first, then protected, then private helpers
 - Blank lines between logical sections
 
+### 15. Small, Focused Methods (Single Responsibility)
+
+Methods should do ONE thing. If a method is longer than ~20 lines, it's probably doing too much.
+
+```php
+// Before - method doing too much
+private function processExport(): ?string
+{
+    // validate input
+    // fetch records
+    // transform data
+    // generate file
+    // upload to storage
+    // send notification
+    // cleanup
+    // ... way too much
+}
+
+// Polished - small focused methods
+private function processExport(): ?string
+{
+    $records = $this->fetchRecords();
+
+    if ($records->isEmpty()) {
+        return null;
+    }
+
+    return $this->generateAndUpload($records);
+}
+```
+
+### 16. Eager Load to Avoid N+1 Queries
+
+Never query inside a loop. Load relationships upfront.
+
+```php
+// Before - N+1 query (bad!)
+foreach ($orderItems as $item) {
+    $product = Product::find($item->product_id);  // Query in loop!
+}
+
+// Polished - eager load
+$orderItems = OrderItem::with('product')->where('order_id', $orderId)->get();
+
+foreach ($orderItems as $item) {
+    $productName = $item->product->name;
+}
+
+// Or - pre-load with pluck
+$products = Product::whereIn('id', $orderItems->pluck('product_id'))
+    ->pluck('name', 'id');
+
+foreach ($orderItems as $item) {
+    $productName = $products[$item->product_id] ?? 'Unknown';
+}
+```
+
+### 17. Use Carbon, Not date()/strtotime()
+
+Laravel casts dates to Carbon. Use it.
+
+```php
+// Before
+date('Y-m-d', strtotime($user->created_at))
+
+// Polished
+$user->created_at->toDateString()
+
+// Before
+date('Y-m-d-His')
+
+// Polished
+now()->format('Y-m-d-His')
+```
+
+### 18. Extract Complex Logic to Helpers
+
+When logic is complex, extract it. Name it well.
+
+```php
+// Before - inline complexity
+$slug = str($title)->slug();
+$originalSlug = $slug;
+$counter = 1;
+
+while (Post::where('slug', $slug)->exists()) {
+    $slug = "{$originalSlug}-{$counter}";
+    $counter++;
+}
+
+// Polished - extracted helper
+$slug = $this->uniqueSlug($title);
+
+// Helper method:
+private function uniqueSlug(string $title): string
+{
+    $slug = str($title)->slug();
+
+    if (! Post::where('slug', $slug)->exists()) {
+        return $slug;
+    }
+
+    $counter = 1;
+
+    do {
+        $uniqueSlug = "{$slug}-{$counter}";
+        $counter++;
+    } while (Post::where('slug', $uniqueSlug)->exists());
+
+    return $uniqueSlug;
+}
+```
+
+### 19. Avoid Error Suppression (@)
+
+The `@` operator hides problems. Handle errors explicitly.
+
+```php
+// Before
+@unlink($tempFile);
+
+// Polished
+if (file_exists($tempFile)) {
+    unlink($tempFile);
+}
+
+// Or use rescue() for "I don't care if it fails"
+rescue(fn () => unlink($tempFile));
+```
+
+### 20. Collection Pipelines Over foreach with Side Effects
+
+```php
+// Before
+foreach ($files as $file) {
+    $content = Storage::get($file->path);
+    if ($content === null) {
+        continue;
+    }
+    $this->processFile($file, $content);
+}
+
+// Polished - filter first, then process
+$files
+    ->map(fn ($file) => ['file' => $file, 'content' => Storage::get($file->path)])
+    ->filter(fn ($item) => $item['content'] !== null)
+    ->each(fn ($item) => $this->processFile($item['file'], $item['content']));
+```
+
+### 21. Fluent Deletion Patterns
+
+```php
+// Before
+Export::where('user_id', $userId)
+    ->where('id', '!=', $latestId)
+    ->each(function (Export $export) {
+        if ($export->file_path) {
+            Storage::delete($export->file_path);
+        }
+        $export->delete();
+    });
+
+// Polished - separate concerns
+$oldExports = Export::where('user_id', $userId)
+    ->where('id', '!=', $latestId)
+    ->get();
+
+Storage::delete($oldExports->pluck('file_path')->filter()->all());
+
+$oldExports->each->delete();
+```
+
+### 22. Simplify with `value()` and `sole()`
+
+```php
+// Before
+$latestId = Export::where('user_id', $userId)->latest()->first()->id;
+
+// Polished
+$latestId = Export::where('user_id', $userId)->latest()->value('id');
+
+// Before - when you expect exactly one result
+$user = User::where('email', $email)->first();
+if (! $user) { throw new Exception; }
+
+// Polished
+$user = User::where('email', $email)->sole();
+```
+
 ---
 
 ## Anti-Patterns (What NOT to Do)
@@ -346,6 +535,65 @@ Str::slug($title);
 Session::get('key');
 ```
 
+### 8. Long Methods (> 20-25 lines)
+```php
+// Unpolished - method doing 5 things
+private function processOrder(): void
+{
+    // 50 lines of validation, calculation,
+    // notification, logging, cleanup...
+}
+
+// Should be broken into focused methods
+```
+
+### 9. Queries Inside Loops (N+1)
+```php
+// Unpolished - query per iteration
+foreach ($posts as $post) {
+    $author = User::find($post->user_id);  // N+1!
+}
+```
+
+### 10. date()/strtotime() Instead of Carbon
+```php
+// Unpolished
+date('Y-m-d', strtotime($model->created_at));
+
+// Use Carbon methods
+```
+
+### 11. Error Suppression Operator (@)
+```php
+// Unpolished - hides problems
+@unlink($path);
+@file_get_contents($url);
+```
+
+### 12. Complex Inline Logic
+```php
+// Unpolished - logic that needs a name
+while ($usedNames->contains($name)) {
+    $pathInfo = pathinfo($name);
+    // 10 more lines of complexity...
+}
+
+// Extract to well-named helper method
+```
+
+### 13. foreach with continue/break When Collection Would Work
+```php
+// Unpolished
+foreach ($items as $item) {
+    if ($item->invalid) {
+        continue;
+    }
+    $result[] = $item->transform();
+}
+
+// Use filter()->map()
+```
+
 ---
 
 ## Output Format
@@ -355,37 +603,61 @@ Session::get('key');
 ```
 ## Otwell Polish Report
 
-### Polish Opportunities
+### Critical (Structural Issues)
 
-1. **file.php:42** - Use `tap()` to avoid temporary variable
+1. **ExportJob.php:84** - Method too long (45+ lines)
+   `process()` is doing too many things. Break into focused methods.
+
+2. **OrderService.php:52** - N+1 query inside loop
    ```php
    // Current
-   $user = User::create($data);
-   $user->notify(new Welcome);
-   return $user;
+   foreach ($items as $item) {
+       $product = Product::find($item->product_id);
+   }
 
    // Polished
-   return tap(User::create($data))->notify(new Welcome);
+   $products = Product::whereIn('id', $items->pluck('product_id'))->get()->keyBy('id');
    ```
 
-2. **file.php:78** - Use higher-order message
+### Should Fix
+
+3. **ReportController.php:28** - Use Carbon, not date()/strtotime()
    ```php
    // Current
-   $users->filter(function ($user) {
-       return $user->active;
+   date('Y-m-d', strtotime($model->created_at))
+
+   // Polished
+   $model->created_at->toDateString()
+   ```
+
+4. **FileHandler.php:67** - Avoid error suppression
+   ```php
+   // Current
+   @unlink($path);
+
+   // Polished
+   rescue(fn () => unlink($path));
+   ```
+
+### Consider
+
+5. **CleanupJob.php:41** - Use higher-order each
+   ```php
+   // Current
+   $records->each(function ($record) {
+       $record->delete();
    });
 
    // Polished
-   $users->filter->active;
+   $records->each->delete();
    ```
 
 ### Already Polished
-- Clean use of `when()` at line 23
-- Good guard clause pattern at line 45
-- Nice use of `tap()` at line 67
+- Good use of `tap()` at line 23
+- Clean guard clause at line 45
 
 ### Summary
-Found 5 polish opportunities. The code is functional but could benefit from Taylor's finishing touches.
+Found 5 polish opportunities (2 critical, 2 should fix, 1 consider).
 ```
 
 ### Apply Mode Output
@@ -393,23 +665,23 @@ Found 5 polish opportunities. The code is functional but could benefit from Tayl
 ```
 ## Otwell Polish Applied
 
-### Changes Made
+### Structural Changes
 
-1. **file.php:42** - Applied `tap()` pattern
-   - Removed temporary variable, using higher-order tap
+1. **ExportJob.php** - Refactored `process()`
+   - Extracted `fetchData()`, `transform()`, `upload()` methods
+   - Main method now reads like prose
 
-2. **file.php:78** - Converted to higher-order message
-   - Simplified filter callback to `->filter->active`
+2. **OrderService.php** - Fixed N+1 query
+   - Pre-loaded products before loop
 
-3. **file.php:112** - Reformatted validation rules
-   - Split long validation array across multiple lines
+### Code Quality
 
-### Preserved
-- Did not change business logic
-- All functionality remains identical
+3. Replaced `date()` with Carbon's `->toDateString()`
+4. Replaced `@unlink()` with `rescue()`
+5. Simplified deletion with `->each->delete()`
 
 ### Summary
-Applied 5 polish refinements. The code now has that Otwell touch.
+Applied 5 polish refinements. Code now has that Otwell touch.
 ```
 
 ---
