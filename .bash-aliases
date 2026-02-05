@@ -52,9 +52,32 @@ alias np="nb"
 alias ff='git pull --ff-only'
 alias gpo="git pull origin"
 alias nah='git reset --hard;git clean -df'
-alias wip='git add . && git commit -m "wip"'
+alias wip='git add . && git commit --allow-empty -m "wip"'
 alias repo='gh repo view --web'
 alias cpr='gh pr create --web'
+# Undoes the last commit, pulls latest, and recommits with the same message
+function fixcommits() {
+    # Save the last commit message
+    local last_message="$(git log -1 --pretty=%B)"
+
+    # Soft reset to undo the commit but keep changes staged
+    git reset --soft HEAD~1
+
+    # Pull latest changes
+    if ! git pull --ff-only; then
+        echo "Pull failed. You may have conflicts to resolve."
+        echo "Your changes are still staged. Original commit message was:"
+        echo "$last_message"
+        return 1
+    fi
+
+    # Recommit with the same message
+    git commit -m "$last_message"
+
+    echo "Done! Commit reapplied on top of latest changes."
+}
+alias fixc='fixcommits'
+
 # Switches from the current branch to the main branch, resets the main branch, and deletes the previous branch.
 function switch_to_origin_and_reset() {
     # Get the name of the current branch

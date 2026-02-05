@@ -17,12 +17,14 @@
       "Bash(jq:*)",
       "Bash(npm:*)",
       "Bash(php:*)",
+      "Bash(php*)",
       "Bash(phpstan:*)",
       "Bash(phpunit:*)",
       "Bash(sed:*)",
       "Edit",
       "Read",
-      "mcp__laravel-boost"
+      "mcp__laravel-boost",
+      "Bash(git -C /Users/ahinkle/.dotfiles ls-files --others --exclude-standard)"
     ],
     "deny": [
       "Bash(git commit:*)",

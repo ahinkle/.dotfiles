@@ -4,14 +4,18 @@ Apply the artisanal code refinement that Taylor Otwell brings to Laravel - the c
 
 ## Context Gathering
 
-1. Determine what to polish:
+1. Be smart about what to polish. The user may reference one or more files - use those. If they don't, start with with uncommited changes first:
    ```bash
    # Check for uncommitted changes first
    git diff --name-only
    git diff --name-only --cached
    ```
 
-2. If changes exist, review those PHP files. If not, ask what to polish.
+2. If changes exist, review those PHP files. If not, determine the difference between the current branch and main/master:
+   ```bash
+   git fetch origin main
+   git diff --name-only origin/main
+   ```
 
 ## Modes
 
@@ -19,19 +23,15 @@ Apply the artisanal code refinement that Taylor Otwell brings to Laravel - the c
 
 Invoked with `/otwell-polish` or `/otwell-polish <file/path>`
 
-Analyze code and identify polish opportunities without making changes.
+Analyze code and identify polish opportunities WITHOUT making changes. Put in a numbered list with code snippets showing before/after.
 
-### Apply Mode
-
-Invoked with `/otwell-polish apply` or `/otwell-polish apply <file/path>`
-
-Analyze code AND apply all identified polish opportunities with explanations.
+The user will likely instruct you in picking and choosing which suggestions to apply in response to your review.
 
 ---
 
 ## The Otwell Philosophy
 
-Taylor's style has evolved over 14 years. His philosophy:
+Taylor Otwell's philosophy:
 
 - **"Simple and disposable and easy to change"** - Code should be easy to kill and rebuild
 - **Against "cathedrals of complexity"** - Clever solutions are a code smell
@@ -230,23 +230,7 @@ $users->map(function ($user) {
 $users->map(fn ($user) => $user->email);
 ```
 
-### 11. Helpers Over Facades
-
-```php
-// Before (Facades)
-Str::slug($title);
-Session::get('key');
-Request::input('name');
-Cache::get('key');
-
-// Polished (Helpers)
-str($title)->slug();
-session('key');
-request('name');
-cache('key');
-```
-
-### 12. Modern PHP Features
+### 11. Modern PHP Features
 
 ```php
 // Constructor promotion
@@ -366,7 +350,7 @@ When logic is complex, extract it. Name it well.
 
 ```php
 // Before - inline complexity
-$slug = str($title)->slug();
+$slug = Str::slug($title);
 $originalSlug = $slug;
 $counter = 1;
 
@@ -381,7 +365,7 @@ $slug = $this->uniqueSlug($title);
 // Helper method:
 private function uniqueSlug(string $title): string
 {
-    $slug = str($title)->slug();
+    $slug = Str::slug($title);
 
     if (! Post::where('slug', $slug)->exists()) {
         return $slug;
@@ -528,14 +512,7 @@ if ($user) {
 }
 ```
 
-### 7. Facades When Helpers Exist
-```php
-// Unpolished
-Str::slug($title);
-Session::get('key');
-```
-
-### 8. Long Methods (> 20-25 lines)
+### 7. Long Methods (> 20-25 lines)
 ```php
 // Unpolished - method doing 5 things
 private function processOrder(): void
