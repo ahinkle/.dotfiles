@@ -614,6 +614,141 @@ Export::make()
     ->toDisk('s3');
 ```
 
+### 24. Invokable Single-Action Controllers
+
+One controller, one action. If a controller only has one method, use `__invoke()`.
+
+```php
+// Before - controller with a single method
+class DashboardController extends Controller
+{
+    public function index()
+    {
+        return view('dashboard');
+    }
+}
+
+Route::get('/dashboard', [DashboardController::class, 'index']);
+
+// Polished - invokable controller
+class DashboardController extends Controller
+{
+    public function __invoke()
+    {
+        return view('dashboard');
+    }
+}
+
+Route::get('/dashboard', DashboardController::class);
+```
+
+This applies to jobs, middleware, and any class with a single responsibility. If a class does one thing, make it invokable.
+
+### 25. `abort_if()` / `abort_unless()` / `throw_if()` / `throw_unless()`
+
+Replace if/throw and if/abort blocks with one-liners.
+
+```php
+// Before
+if (! $user->owns($post)) {
+    abort(403);
+}
+
+// Polished
+abort_unless($user->owns($post), 403);
+
+// Before
+if ($order->isPaid()) {
+    throw new AlreadyPaidException;
+}
+
+// Polished
+throw_if($order->isPaid(), AlreadyPaidException::class);
+```
+
+### 26. Nullsafe Operator (`?->`)
+
+Eliminate null checks with PHP 8's nullsafe operator.
+
+```php
+// Before
+$city = $user->address ? $user->address->city : null;
+
+// Polished
+$city = $user->address?->city;
+
+// Before
+if ($user->profile !== null) {
+    return $user->profile->avatar_url;
+}
+return null;
+
+// Polished
+return $user->profile?->avatar_url;
+```
+
+### 27. Space After `!` in Negation
+
+Laravel coding style: always a space after the negation operator. No exceptions.
+
+```php
+// Unpolished
+if (!$user) {
+if (!$request->has('name')) {
+if (!empty($items)) {
+
+// Polished
+if (! $user) {
+if (! $request->has('name')) {
+if (! empty($items)) {
+```
+
+### 28. Form Request Classes
+
+Validation belongs in Form Request classes, not in controller methods.
+
+```php
+// Before - validation in controller
+public function store(Request $request)
+{
+    $this->validate($request, [
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|unique:users',
+        'password' => 'required|min:8|confirmed',
+    ]);
+
+    // ...
+}
+
+// Polished - dedicated form request
+public function store(StoreUserRequest $request)
+{
+    // Validation already handled. $request->validated() has clean data.
+    User::create($request->validated());
+}
+```
+
+The form request encapsulates validation rules AND authorization in one place:
+
+```php
+class StoreUserRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user()->can('create', User::class);
+    }
+
+    public function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'unique:users'],
+            'password' => ['required', 'min:8', 'confirmed'],
+        ];
+    }
+}
+```
+
 ---
 
 ## Anti-Patterns (What NOT to Do)
