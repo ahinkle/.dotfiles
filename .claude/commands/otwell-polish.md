@@ -458,6 +458,162 @@ if (! $user) { throw new Exception; }
 $user = User::where('email', $email)->sole();
 ```
 
+### 23. Fluent Interfaces (Builder Pattern)
+
+Classes that return `$this` so method calls chain together like sentences. Laravel is built on them: query builder, mail, notifications, pipelines, pending dispatches. When building custom classes, prefer a fluent API over setters or config arrays.
+
+**Return `$this` from configuration methods:**
+
+```php
+// Before - setter-style configuration
+$report = new ReportBuilder;
+$report->setType('sales');
+$report->setDateRange($start, $end);
+$report->setFormat('pdf');
+$report->setRecipient($user);
+$result = $report->generate();
+
+// Polished - fluent builder
+$result = ReportBuilder::make()
+    ->type('sales')
+    ->dateRange($start, $end)
+    ->format('pdf')
+    ->recipient($user)
+    ->generate();
+```
+
+**Use a static `make()` or `for()` entry point for readability:**
+
+```php
+// Before - new + configure
+$invitation = new Invitation;
+$invitation->team_id = $team->id;
+$invitation->email = $email;
+$invitation->role = 'member';
+$invitation->save();
+
+// Polished - fluent factory
+$invitation = Invitation::for($team)
+    ->email($email)
+    ->role('member')
+    ->send();
+```
+
+**Follow Laravel's own patterns — Mail, Notifications, Pipelines:**
+
+```php
+// Mail builder - Taylor's signature style
+Mail::to($user)
+    ->cc($managers)
+    ->bcc($admin)
+    ->queue(new MonthlyReport($data));
+
+// Notification builder
+$user->notify(
+    Notification::make()
+        ->title('Export Complete')
+        ->body('Your report is ready.')
+        ->action('Download', $url)
+);
+
+// Pipeline - process through steps fluently
+$result = Pipeline::send($request)
+    ->through([
+        NormalizeInput::class,
+        ValidateData::class,
+        TransformPayload::class,
+    ])
+    ->thenReturn();
+```
+
+**Building your own fluent class — the pattern:**
+
+```php
+class DeploymentBuilder
+{
+    private string $branch = 'main';
+    private string $environment = 'production';
+    private bool $migrate = false;
+    private array $hooks = [];
+
+    public static function make(): static
+    {
+        return new static;
+    }
+
+    public function branch(string $branch): static
+    {
+        $this->branch = $branch;
+
+        return $this;
+    }
+
+    public function to(string $environment): static
+    {
+        $this->environment = $environment;
+
+        return $this;
+    }
+
+    public function withMigrations(): static
+    {
+        $this->migrate = true;
+
+        return $this;
+    }
+
+    public function afterDeploy(Closure $hook): static
+    {
+        $this->hooks[] = $hook;
+
+        return $this;
+    }
+
+    public function run(): DeploymentResult
+    {
+        // Terminal method - does the work
+    }
+}
+
+// Usage reads like prose:
+DeploymentBuilder::make()
+    ->branch('feature/new-dashboard')
+    ->to('staging')
+    ->withMigrations()
+    ->afterDeploy(fn () => Artisan::call('cache:clear'))
+    ->run();
+```
+
+**Key principles of Otwell-style fluent APIs:**
+
+- **Static entry point** — `make()`, `for()`, `query()`, `build()` — avoids awkward `new` in chains
+- **Verb-style terminal methods** — `send()`, `run()`, `dispatch()`, `get()` — the last call does the work
+- **Boolean toggles read as phrases** — `->withMigrations()` over `->setMigrate(true)`
+- **Preposition methods for context** — `->to('staging')`, `->for($user)`, `->via('slack')`
+- **Return `static` not `self`** — allows subclasses to chain without breaking the type
+- **Sensible defaults** — the builder should work with minimal configuration
+
+**Spot opportunities to refactor config arrays into builders:**
+
+```php
+// Before - config array (hard to read, no IDE support)
+$this->export([
+    'type' => 'csv',
+    'columns' => ['name', 'email'],
+    'filter' => fn ($q) => $q->where('active', true),
+    'filename' => 'users-export',
+    'disk' => 's3',
+]);
+
+// Polished - fluent builder
+Export::make()
+    ->csv()
+    ->columns(['name', 'email'])
+    ->query(fn ($q) => $q->where('active', true))
+    ->filename('users-export')
+    ->toDisk('s3');
+```
+
 ---
 
 ## Anti-Patterns (What NOT to Do)
@@ -570,6 +726,37 @@ foreach ($items as $item) {
 
 // Use filter()->map()
 ```
+
+### 14. Boolean Flag Arguments
+Boolean arguments are unreadable at the call site. What does `true` mean here? Nobody knows without reading the method signature.
+
+Consider chaining (see fluent interfaces above) or descriptive methods instead.
+
+```php
+// Unpolished - what does true mean?
+$user->notify($message, true);
+$order->process(false, true);
+$report->generate(true);
+
+// Polished - use descriptive methods instead
+$user->notifyImmediately($message);
+$order->processWithoutReceipt()->withTracking();
+$report->generateAsPdf();
+
+// Or use named arguments (PHP 8.0+)
+$user->notify($message, immediately: true);
+
+// Or use enums for multi-state flags
+$report->generate(Format::Pdf);
+```
+
+Never use boolean parameters. They are the antithesis of code that reads like prose. Every `true`/`false` at a call site is a readability failure. Instead:
+- **Split into two methods** — `send()` / `sendQuietly()`, `delete()` / `forceDelete()`
+- **Use named arguments** — if the bool truly belongs, at least make it readable
+- **Use enums** — when the flag represents a choice between states
+- **Use fluent toggles** — `->withTimestamps()`, `->withoutTouching()`
+
+Laravel itself follows this — `$model->delete()` vs `$model->forceDelete()`, `Str::of($val)->lower()` not `Str::convert($val, true)`.
 
 ---
 
