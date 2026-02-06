@@ -687,7 +687,7 @@ return null;
 return $user->profile?->avatar_url;
 ```
 
-### 27. Space After `!` in Negation
+### 27. Space After Negation Operator (!)
 
 Laravel coding style: always a space after the negation operator. No exceptions.
 
