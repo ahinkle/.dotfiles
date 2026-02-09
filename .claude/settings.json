@@ -24,7 +24,7 @@
       "Edit",
       "Read",
       "mcp__laravel-boost",
-      "Bash(git -C /Users/ahinkle/.dotfiles ls-files --others --exclude-standard)"
+      "Bash(ls:*)"
     ],
     "deny": [
       "Bash(git commit:*)",
